@@ -177,7 +177,7 @@ class Carrera:
         conexion = conectar_db()
         cursor = conexion.cursor()
 
-        cursor.execute("DELETE FROM carrera WHERE codigo = %s", (codigo,))
+        cursor.execute("DELETE FROM carreras WHERE codigo = %s", (codigo,))
         conexion.commit()
         cursor.close()
         conexion.close()
@@ -774,8 +774,8 @@ def mostrar_menu():
         1. Registrar Estudiante
         2. Editar Estudiante
         3. Eliminar Estudiante
-        4. Buscar Estudiante
-        5. Mostrar Estudiantes
+        4. Mostrar Estudiantes
+        5. Buscar Estudiante
     
     Gestión de Cursos
         6. Registrar Curso
@@ -807,9 +807,9 @@ if __name__ == "__main__":
         elif opcion == "3":
             eliminar_estudiante()
         elif opcion == "4":
-            buscar_estudiante()
-        elif opcion == "5":
             Estudiante.obtener_estuadiantes()
+        elif opcion == "5":
+            buscar_estudiante()
         elif opcion == "6":
             registrar_curso()
         elif opcion == "7":
