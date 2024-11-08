@@ -105,7 +105,6 @@ class Estudiante:
 
     def mostrar_informacion(self):
         carrera = Carrera.obtener_carrera(self.carrera)
-        print("")
         print(f'Carnet: {self.carnet}, Nombre: {self.nombre}, Carrera: {carrera.nombre}')
     
     def obtener_estuadiantes():
@@ -186,9 +185,14 @@ class Carrera:
     def mostrar_informacion(self):
         print(f'Código: {self.codigo}, Nombre: {self.nombre}')
         cursos = obtener_cursos_disponibles_por_carrera(self.codigo)
+        estudiantes = obtener_estudiantes_por_carrera(self.codigo)
         print("Cursos disponibles:")
         for curso in cursos:
             print(f'- codigo: {curso[0]}, nombre: {curso[1]}')
+        print("")
+        print("Estudiantes asignados a la carrera:")
+        for estudiante in estudiantes:
+            print(f'- carnet: {estudiante[0]}, nombre: {estudiante[1]}')
             
     def agregar_curso(codigo_carrera, codigo_curso):
         conexion = conectar_db()
@@ -360,7 +364,6 @@ def reporte_mejores_peores_estudiantes(codigo_curso):
 
     print("Mejores estudiantes:")
     for estudiante in mejores:
-        print("")
         Estudiante.obtener_nombre(estudiante[0], f', nota: {estudiante[1]}')
 
     print("\nPeores estudiantes:")
@@ -406,6 +409,7 @@ def promedio_estudiante(carnet):
     conexion = conectar_db()
     cursor = conexion.cursor()
 
+    # Obtener la suma total de notas del estudiante
     cursor.execute(
         """
         SELECT  
@@ -415,8 +419,9 @@ def promedio_estudiante(carnet):
         """,
         (carnet,)
     )
-    total_suma = cursor.fetchone()[0]  
-
+    total_suma = cursor.fetchone()[0]  # La suma de las notas de todos los cursos del estudiante
+    
+    # Obtener la cantidad de cursos en los que el estudiante tiene notas
     cursor.execute(
         """
         SELECT 
@@ -426,7 +431,7 @@ def promedio_estudiante(carnet):
         """,
         (carnet,)
     )
-    cantidad_cursos = cursor.fetchone()[0]  
+    cantidad_cursos = cursor.fetchone()[0]  # La cantidad de cursos
 
     cursor.close()
     conexion.close()
@@ -459,6 +464,7 @@ def reporte_notas_faltantes(codigo_curso):
     cursor.close()
     conexion.close()
 
+    # Mostrar reporte de estudiantes faltantes
     if estudiantes_faltantes:
         print(f"Estudiantes sin notas en el curso {codigo_curso}:")
         for carnet, nombre in estudiantes_faltantes:
@@ -481,50 +487,55 @@ def editar_estudiante():
     estudiante = Estudiante.obtener_estudiante(carnet)
     
     if estudiante:
-        print("""
-        Seleccione lo que desea editar:
-        1. Nombre del estudiante
-        2. Carrera
-        3. Cursos
-        0. Salir
-        """)
-        opcion = input("Ingrese su opción: ")
+        repetir = True
+        while repetir:
+            
+            print("""
+            Seleccione lo que desea editar:
+            1. Nombre del estudiante
+            2. Carrera
+            3. Cursos
+            0. Salir
+            """)
+            opcion = input("Ingrese su opción: ")
+            
+            if opcion == "1":
+                nuevo_nombre = input("Ingrese el nuevo nombre del estudiante: ")
+                estudiante.nombre = nuevo_nombre
+                sql = "UPDATE estudiantes SET nombre = %s WHERE carnet = %s"
+                Estudiante.editar_estudiante(sql, (nuevo_nombre, estudiante.carnet))
+                print(f"Nombre actualizado a: {estudiante.nombre}")
+            
+            elif opcion == "2":
+                carrera = seleccionar_carrera()
+                nuevo_carnet = generar_carnet(carrera.codigo)
+                sql = "UPDATE estudiantes SET carnet = %s, codigo_carrera = %s WHERE carnet = %s"
+                Estudiante.editar_estudiante(sql, (nuevo_carnet, carrera.codigo, estudiante.carnet))
+                print(f"Carrera actualizada a: {Carrera.obtener_carrera(carrera.codigo).nombre}")
+                print(f"Nuevo carnet para {estudiante.nombre}: {nuevo_carnet}")
+                repetir = False
         
-        if opcion == "1":
-            nuevo_nombre = input("Ingrese el nuevo nombre del estudiante: ")
-            estudiante.nombre = nuevo_nombre
-            sql = "UPDATE estudiantes SET nombre = %s WHERE carnet = %s"
-            Estudiante.editar_estudiante(sql, (nuevo_nombre, estudiante.carnet))
-            print(f"Nombre actualizado a: {estudiante.nombre}")
-        
-        elif opcion == "2":
-            carrera = seleccionar_carrera()
-            nuevo_carnet = generar_carnet(carrera.codigo)
-            sql = "UPDATE estudiantes SET carnet = %s, codigo_carrera = %s WHERE carnet = %s"
-            Estudiante.editar_estudiante(sql, (nuevo_carnet, carrera.codigo, estudiante.carnet))
-            print(f"Carrera actualizada a: {Carrera.obtener_carrera(carrera.codigo).nombre}")
-            print(f"Nuevo carnet para {estudiante.nombre}: {nuevo_carnet}")
-    
-        elif opcion == "3":
-            cursos_disponibles = obtener_cursos_disponibles_por_carrera(estudiante.carrera)
+            elif opcion == "3":
+                cursos_disponibles = obtener_cursos_disponibles_por_carrera(estudiante.carrera)
 
-            print("Cursos disponibles para esta carrera:")
-            for curso in cursos_disponibles:
-                print(f"Código: {curso[0]}, Nombre: {curso[1]}")
+                print("Cursos disponibles para esta carrera:")
+                for curso in cursos_disponibles:
+                    print(f"Código: {curso[0]}, Nombre: {curso[1]}")
 
-            print("")
-            codigo_curso = input("Ingrese el código del curso a asignar: ")
+                print("")
+                codigo_curso = input("Ingrese el código del curso a asignar: ")
 
-            if codigo_curso in [curso[0] for curso in cursos_disponibles]:
-                asignar_curso_a_estudiante(estudiante.carnet, codigo_curso)
-                print("Curso asignado correctamente.")
+                if codigo_curso in [curso[0] for curso in cursos_disponibles]:
+                    asignar_curso_a_estudiante(estudiante.carnet, codigo_curso)
+                    print("Curso asignado correctamente.")
+                else:
+                    print("El curso seleccionado no es válido.")
+            elif opcion == "0":
+                print("Saliendo del menú de edición.")
+                repetir = False
+            
             else:
-                print("El curso seleccionado no es válido.")
-        elif opcion == "0":
-            print("Saliendo del menú de edición.")
-        
-        else:
-            print("Opción no válida, por favor intente de nuevo.")
+                print("Opción no válida, por favor intente de nuevo.")
 
 def eliminar_estudiante():
     carnet = input("Ingrese el carnet del estudiante a eliminar: ")
@@ -679,7 +690,9 @@ def seleccionar_carrera():
         print(f"    Código: {carrera[0]}, Nombre: {carrera[1]}")
     
     codigo_carrera = input("Ingrese el código de la carrera: ")
-    carrera = Carrera.obtener_carrera(codigo_carrera)
+    carrera = None
+    if codigo_carrera:
+        carrera = Carrera.obtener_carrera(codigo_carrera)
     
     if carrera:
         return carrera
@@ -690,8 +703,10 @@ def seleccionar_carrera():
 def seleccionar_curso():
     print("")
     codigo_curso = input("Ingrese el código del curso: ")
-    curso = Curso.obtener_curso(codigo_curso)
-    
+    curso = None
+    if codigo_curso:
+        curso = Curso.obtener_curso(codigo_curso)
+
     if curso:
         return curso
     else:
@@ -714,6 +729,23 @@ def obtener_cursos_disponibles_por_carrera(codigo_carrera):
     conexion.close()
 
     return cursos
+
+def obtener_estudiantes_por_carrera(codigo_carrera):
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+
+    cursor.execute("""
+        SELECT carnet, nombre
+        FROM estudiantes 
+        WHERE codigo_carrera = %s
+        ORDER BY carnet ASC
+    """, (codigo_carrera,))
+
+    estudiantes = cursor.fetchall()
+    cursor.close()
+    conexion.close()
+
+    return estudiantes
 
 def asignar_curso_a_estudiante(carnet, codigo_curso):
     conexion = conectar_db()
